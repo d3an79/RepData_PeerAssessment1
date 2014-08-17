@@ -15,12 +15,13 @@ John Hopkins Bloomberg School of Puplic Health through Coursera.
 This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals throughout the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
 
-### Preparing the data
+
 
 First set the working to directory to the folder that holds the unzipped activity folder
 
 To read the csv into memory
-```{r}
+
+```r
 data <- read.csv("./activity/activity.csv")
 ```
 
@@ -32,24 +33,45 @@ For this part of the assignment the missing values can be ignored.
 
 To complete this task the steps must first be sum by the aggregate of the date 
 field. For this task the plyr package has been used. 
-```{r}
+
+```r
 require(plyr)
+```
+
+```
+## Loading required package: plyr
+```
+
+```r
 dailyD <- ddply(data, "date", summarise,steps = sum(steps))
 ```
 
 With this completed the histogram can then be produced.
-```{r}
+
+```r
 with(dailyD, hist(steps, main="Histogram of steps taken per day"))
 ```
 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+
 The mean can be calculated with the following formula:
-```{r}
+
+```r
 mean(dailyD[,"steps"], na.rm=T )
 ```
 
+```
+## [1] 10766
+```
+
 The median can be calculated with the following formula:
-```{r}
+
+```r
 median(dailyD[,"steps"], na.rm=T )
+```
+
+```
+## [1] 10765
 ```
 
 ### What is the average daily pattern
@@ -57,18 +79,27 @@ median(dailyD[,"steps"], na.rm=T )
 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 Once again the plyr package will be used; this time to find the mean values aggregated against the interval column.
-```{r}
+
+```r
 intervalD <- ddply(data, "interval", summarise,steps = mean(steps, na.rm=T))
 ```
 
 The plot can then be created.
-```{r}
+
+```r
 with(intervalD, plot(interval,steps, type="l", main="Mean number of steps per interval averaged over all days"))
 ```
 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+
 The 5 minute interval that on average contains the maximum number of steps can then be found.
-```{r}
+
+```r
 intervalD[intervalD[,"steps"]== max(intervalD[,"steps"]),"interval"]
+```
+
+```
+## [1] 835
 ```
 
 ### Input the missing values
@@ -78,16 +109,33 @@ intervalD[intervalD[,"steps"]== max(intervalD[,"steps"]),"interval"]
 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
 The total number of missing values is:
-```{r}
+
+```r
 sum(is.na(data[,"steps"]))
+```
+
+```
+## [1] 2304
 ```
 
 The strategy that will be used to fill in the missing values will be to assign the mean value for the day that the interval was taken. These values where found in the previous question.  
 The sqldf package will be used to help accomplish this process
 
-```{r}
-require(sqldf)
 
+```r
+require(sqldf)
+```
+
+```
+## Loading required package: sqldf
+## Loading required package: gsubfn
+## Loading required package: proto
+## Loading required package: RSQLite
+## Loading required package: DBI
+## Loading required package: RSQLite.extfuns
+```
+
+```r
 # copy data to new dataframe
 filledData <- data
 # find values with NA data
@@ -98,8 +146,13 @@ filledData[is.na(filledData[,"steps"]),] <-
           from intList JOIN intervalD using(interval)")
 ```
 
+```
+## Loading required package: tcltk
+```
+
 To create the histogram the plyr package will again be used to sum the steps taken per day.
-```{r}
+
+```r
 # use the plyr package to summarise the data by date
 filledDailyD <- ddply(filledData, "date", summarise,steps = sum(steps))
 
@@ -107,15 +160,27 @@ filledDailyD <- ddply(filledData, "date", summarise,steps = sum(steps))
 with(filledDailyD, hist(steps, main="Histogram of steps taken per day"))
 ```
 
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+
 
 The mean can be calculated with the following formula:
-```{r}
+
+```r
 mean(filledDailyD[,"steps"] )
 ```
 
+```
+## [1] 10766
+```
+
 The median can be calculated with the following formula:
-```{r}
+
+```r
 median(filledDailyD[,"steps"])
+```
+
+```
+## [1] 10766
 ```
 This shows very little change from the dataset with the missing values as filling the missing values with the mean value of the day does not add any variance to the dataso will not impact on the overall mean.
 
@@ -125,12 +190,14 @@ This shows very little change from the dataset with the missing values as fillin
 
 The dataset that was created with the missing NA values filled with the mean of each day will be used to answer this question.  
 First the date field will be converted from a text variab;e to a date variable.
-```{r}
+
+```r
 filledData[,"date"] <- as.Date(filledData[,"date"], format= "%Y-%m-%d")
 ```
 
 Part of the process to add a factor variable to the dataset will need to use the function that is written below.
-```{r}
+
+```r
 isWeekend <- function(day)
 {
     # set initial value to weekday
@@ -148,7 +215,8 @@ isWeekend <- function(day)
 This function simplay takes in a text variable of a given day and returns Weekday or Weekend as necessary.
 
 The following code can then be used to process the data into a format suitable for plotting.
-```{r}
+
+```r
 # use weekdays to find the day of the week of each element of date
 # use sapply to send this value to isWeekend
 # add the returned value of isWeekend to a new column called timeofweek
@@ -161,14 +229,24 @@ filledData[,"timeofweek"] <- as.factor(filledData[,"timeofweek"])
 filledIntervalD <- ddply(filledData, .(interval, timeofweek), summarise, steps=mean(steps))
 ```
 The plot can then be created.
-```{r}
+
+```r
 require(ggplot2)
+```
+
+```
+## Loading required package: ggplot2
+```
+
+```r
 sp <- ggplot(data=filledIntervalD, aes(x=interval, y=steps, group=timeofweek, colour=timeofweek))
 sp <- sp + facet_grid(timeofweek ~ .)
 sp <- sp + ggtitle("Steps taken per time interval aggreated by the time of the week")
 sp <- sp + geom_line() + geom_point()
 sp
 ```
+
+![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17.png) 
 
 
 
